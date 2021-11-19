@@ -5,7 +5,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "remote_client.h"
-#include "remote_clientDlg.h"
+#include "ClientController.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -76,9 +76,12 @@ BOOL CremoteclientApp::InitInstance()
 	// 例如修改为公司或组织名
 	SetRegistryKey(_T("应用程序向导生成的本地应用程序"));
 
-	CremoteclientDlg dlg;
-	m_pMainWnd = &dlg;
-	INT_PTR nResponse = dlg.DoModal();
+	/*CremoteclientDlg dlg;
+	m_pMainWnd = &dlg;*/
+	//INT_PTR nResponse = dlg.DoModal();
+	CClientController::getObject()->init();
+	INT_PTR nResponse = CClientController::getObject()->invoke(m_pMainWnd);
+
 	if (nResponse == IDOK)
 	{
 		// TODO: 在此放置处理何时用
