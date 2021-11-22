@@ -64,13 +64,11 @@ CPoint CSreenMonitor::ScreenToRemoteClient(const CPoint& point,bool isbool = tru
 void CSreenMonitor::initMouse()
 {
 	//获取CS屏幕分辨率
-	CClientSocket* obj = CClientSocket::getObject();
-	//DataBag bag(11);
-	//obj->SendMes(bag);
-	CClientController::getObject()->SendCommandPacket(11);
-	obj->recvMes();
-	int Sx = *(int*)obj->databag.m_data.c_str();
-	int Sy = *(int*)(obj->databag.m_data.c_str() + 4);
+	CClientController* obj = CClientController::getObject();
+	obj->SendCommandPacket(11);
+	obj->RecvCommand();
+	int Sx = *(int*)obj->getResult().c_str();
+	int Sy = *(int*)(obj->getResult().c_str() + 4);
 
 	int x = GetSystemMetrics(SM_CXSCREEN);
 	int y = GetSystemMetrics(SM_CYSCREEN);
@@ -80,7 +78,6 @@ void CSreenMonitor::initMouse()
 
 void CSreenMonitor::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nIDEvent == 0) {
 		//CremoteclientDlg* dig = (CremoteclientDlg*)GetParent();
 		/*CClientController::getObject()->dlg*/
@@ -104,7 +101,7 @@ BOOL CSreenMonitor::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
-	SetTimer(0, 40, NULL);
+	SetTimer(0, 35, NULL);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -125,8 +122,6 @@ void CSreenMonitor::OnMouseMove(UINT nFlags, CPoint _point)
 	m_MouseEvent.DUM = 4;
 	m_MouseEvent.P = ScreenToRemoteClient(_point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	//DataBag bag(6, val);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(6, val);
 	CDialog::OnMouseMove(nFlags, _point);
 }
@@ -138,8 +133,6 @@ void CSreenMonitor::OnLButtonDblClk(UINT nFlags, CPoint _point)
 	m_MouseEvent.DUM = 0;
 	m_MouseEvent.P = ScreenToRemoteClient(_point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	//DataBag bag(6, val);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(6, val);
 	CDialog::OnLButtonDblClk(nFlags, _point);
 }
@@ -151,9 +144,8 @@ void CSreenMonitor::OnLButtonDown(UINT nFlags, CPoint _point)
 	m_MouseEvent.DUM = 1;
 	m_MouseEvent.P = ScreenToRemoteClient(_point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	//DataBag bag(6, val);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(6, val);
+
 	CDialog::OnLButtonDown(nFlags, _point);
 }
 
@@ -164,8 +156,6 @@ void CSreenMonitor::OnLButtonUp(UINT nFlags, CPoint point)
 	m_MouseEvent.DUM = 2;
 	m_MouseEvent.P = ScreenToRemoteClient(point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	//DataBag bag(6, val);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(6, val);
 
 	CDialog::OnLButtonUp(nFlags, point);
@@ -178,8 +168,6 @@ void CSreenMonitor::OnRButtonUp(UINT nFlags, CPoint point)
 	m_MouseEvent.DUM = 2;
 	m_MouseEvent.P = ScreenToRemoteClient(point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	//DataBag bag(6, val);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(6,val);
 
 	CDialog::OnRButtonUp(nFlags, point);
@@ -205,8 +193,6 @@ void CSreenMonitor::OnRButtonDown(UINT nFlags, CPoint point)
 	m_MouseEvent.DUM = 1;
 	m_MouseEvent.P = ScreenToRemoteClient(point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	//DataBag bag(6, val);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(6,val);
 
 	CDialog::OnRButtonDown(nFlags, point);
@@ -215,16 +201,11 @@ void CSreenMonitor::OnRButtonDown(UINT nFlags, CPoint point)
 
 void CSreenMonitor::OnBnClickedButton1()
 {
-
-	//DataBag bag(8);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(9);
 }
 
 
 void CSreenMonitor::OnBnClickedButton2()
 {
-	//DataBag bag(9);
-	//CClientSocket::getObject()->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(9);
 }

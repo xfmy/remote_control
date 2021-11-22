@@ -35,7 +35,7 @@ protected:
 public:
 
 	//视频监控多线程函数
-	static void __cdecl _threadMonitor(void*);
+	//static void __cdecl _threadMonitor(void*);
 	CImage imageMonitor;
 	bool isNullMonitor = false;
 	//CSreenMonitor cs;
@@ -54,7 +54,7 @@ public:
 	void deleteSubAllDir(HTREEITEM hTree);
 	//m_downLoad m_obj;
 	afx_msg void OnBnClickedButtonDemo2();
-	static void WINAPIV _ThreadDoenLoadFunction(void* parametor);
+	//static void WINAPIV _ThreadDoenLoadFunction(void* parametor);
 //	afx_msg void OnNMDblclkTreeFile(NMHDR* pNMHDR, LRESULT* pResult);
 	// 文件列表
 	CListCtrl m_fileList;

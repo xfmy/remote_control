@@ -119,7 +119,7 @@ BOOL CremoteclientDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
-	// TODO: 在此添加额外的初始化代码
+	//在此添加额外的初始化代码
 	//m_ipAddr = 0x2AC02902;
 	m_ipAddr = 0x7F000001;
 	m_port = "18086";
@@ -176,135 +176,145 @@ HCURSOR CremoteclientDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
+//进入用户代码段
 
-void __cdecl CremoteclientDlg::_threadMonitor(void* th)//th:  CremoteclientDlg对象
-{
-	Sleep(50);
-	CremoteclientDlg* thiz = (CremoteclientDlg*)th;
-	while (! CClientSocket::getObject())
-	{
-		Sleep(1);
-	}
-	CClientSocket* obj = CClientSocket::getObject();
-	
-	int bufsz = 1024 * 1024 * 10;//10mb
-	char* buf = new char[bufsz];
-	memset(buf, 0, bufsz);
-	UINT index = 0;
-	int res = 0;
-	while (true) {
-		if (thiz->isNullMonitor == false)
-		{
-			DataBag bag(7);
-			obj->SendMes(bag);
-			res = obj->recvMes(buf, bufsz, &index, &bag);
+//迁移及问题解决
+//1.屏幕监控线程
+//2.文件下载线程
+//image需要再次进行封装控制层
 
-			if (res > 0 && bag.cmd == 7)
-			{
+//屏幕监控线程
+//void __cdecl CremoteclientDlg::_threadMonitor(void* th)//th:  CremoteclientDlg对象
+//{
+//	Sleep(50);
+//	CremoteclientDlg* thiz = (CremoteclientDlg*)th;
+//	while (! CClientSocket::getObject())
+//	{
+//		Sleep(1);
+//	}
+//	CClientController* obj = CClientController::getObject();
+//
+//	int bufsz = 1024 * 1024 * 10;//10mb
+//	char* buf = new char[bufsz];
+//	memset(buf, 0, bufsz);
+//	UINT index = 0;
+//	int res = 0;
+//	
+//
+//	while (true) {
+//		if (thiz->isNullMonitor == false)
+//		{
+//			obj->SendCommandPacket(7);
+//			res = obj->recvMes(buf, bufsz, &index, &bag);
+//
+//			if (res > 0 && bag.cmd == 7)
+//			{
+//
+//				BYTE* data = (BYTE*)bag.m_data.c_str();
+//
+//				HGLOBAL hMen = GlobalAlloc(GMEM_MOVEABLE, 0);
+//				if (hMen == NULL)
+//				{
+//					TRACE("内存不足");
+//					Sleep(1);
+//					continue;
+//				}
+//				IStream* iStr = NULL;
+//				HRESULT hRet = CreateStreamOnHGlobal(hMen, TRUE, &iStr);
+//				if (hRet == S_OK)
+//				{
+//					ULONG len = 0;
+//					iStr->Write(data, bag.m_data.size(), &len);
+//					LARGE_INTEGER bg{ 0 };
+//					iStr->Seek(bg, STREAM_SEEK_SET, NULL);
+//					thiz->imageMonitor.Load(iStr);
+//					thiz->isNullMonitor = true;
+//				}
+//			}
+//			Sleep(1);
+//			memset(buf, 0, bag.DATA.size());
+//			index = 0;
+//
+//		} Sleep(1);
+//	}
+//	delete[] buf;
+//	_endthread();
+//}
 
-				BYTE* data = (BYTE*)bag.m_data.c_str();
-
-				HGLOBAL hMen = GlobalAlloc(GMEM_MOVEABLE, 0);
-				if (hMen == NULL)
-				{
-					TRACE("内存不足");
-					Sleep(1);
-					continue;
-				}
-				IStream* iStr = NULL;
-				HRESULT hRet = CreateStreamOnHGlobal(hMen, TRUE, &iStr);
-				if (hRet == S_OK)
-				{
-					ULONG len = 0;
-					iStr->Write(data, bag.m_data.size(), &len);
-					LARGE_INTEGER bg{ 0 };
-					iStr->Seek(bg, STREAM_SEEK_SET, NULL);
-					thiz->imageMonitor.Load(iStr);
-					thiz->isNullMonitor = true;
-				}
-			}
-			Sleep(1);
-			memset(buf, 0, bag.DATA.size());
-			index = 0;
-
-		} Sleep(1);
-	}
-	delete[] buf;
-	_endthread();
-}
-
-
+//链接按钮按下
 void CremoteclientDlg::OnBnClickedButtonDemo()
 {
 	UpdateData();
+	CClientController* obj = CClientController::getObject();
 	int res = CClientSocket::getObject()->init();
 	if (res == 0) {
 		(CButton*)GetDlgItem(IDC_BUTTON_DEMO)->EnableWindow(false);
 		//TODO 启动屏幕监控 处理
-		_beginthread(_threadMonitor, 0, this);
+		_beginthread(CClientController::_threadMonitor, 0, this);
 		//TODO 处理
-		CClientController::getObject()->m_screenMonitor.initMouse();
-		CClientController::getObject()->m_screenMonitor.DoModal();
+		obj->m_screenMonitor.initMouse();
+		obj->m_screenMonitor.DoModal();
 	}
 }
 
-
+//目录控件初始化
 void CremoteclientDlg::OnBnClickedButtonDemo2()
 {
-	CClientSocket* obj = CClientSocket::getObject();
-	DataBag bag(1);
-	obj->SendMes(bag);
-	if (obj->recvMes() == 1) {
+	CClientController* obj = CClientController::getObject();
+	obj->SendCommandPacket(1);
+	if (obj->RecvCommand() == 1) {
 		m_tree.DeleteAllItems();
-		for (int i = 0,j =  obj->databag.m_data.size();i < j;i++)
+		for (int i = 0,j =  obj->getResult().size();i < j;i++)
 		{
-			if (obj->databag.m_data[i] != '.')
+			if (obj->getResult()[i] != '.')
 			{
 				CString str;
-				str = obj->databag.m_data[i];
+				str = obj->getResult()[i];
 				str += ":";
 				HTREEITEM htr = m_tree.InsertItem(str.GetBuffer(),TVI_ROOT,TVI_LAST);
-				//m_tree.InsertItem("", htr, TVI_LAST);
 			}
 		}
 	}
 }
 
-void WINAPIV CremoteclientDlg::_ThreadDoenLoadFunction(void* parametor) {
-
-	CClientSocket* obj = CClientSocket::getObject();
-	ULONGLONG fileSize = *(ULONGLONG*)obj->databag.m_data.c_str();//文件大小
-
-	CremoteclientDlg* pCD = (CremoteclientDlg*)parametor;
-
-	int getsz = 0;
-	std::string pathName(pCD->pathName);
-	DataBag bag1(4, pathName);
-	obj->SendMes(bag1);
-	char* buf = new char[100 * 1024];
-	memset(buf, 0, 100 * 1024);
-	UINT index = 0;
-
-	while (obj->recvMes(buf,100*1024,&index,&bag1) == 4)
-	{
-		if (bag1.m_data.size() == 0)
-		{
-			AfxMessageBox("文件打开失败");
-			break;
-		}
-		size_t len = fwrite(bag1.m_data.c_str(), 1, bag1.m_data.size(), pCD->pfile);
-		getsz += bag1.m_data.size();
-		if (getsz == fileSize) {
-			AfxMessageBox("文件下载完毕");
-			break;
-		}
-	}
-	CClientController::getObject()->m_dLoad.ShowWindow(SW_HIDE);
-	fclose(pCD->pfile);
-	//delete parametor;
-	delete buf;
-	_endthread();
-}
+//文件下载线程
+//void WINAPIV CremoteclientDlg::_ThreadDoenLoadFunction(void* parametor) //TODO 此线程应该移到控制层
+//{
+//	CClientController* obj = CClientController::getObject();
+//	ULONGLONG fileSize = *(ULONGLONG*)obj->getResult().c_str();//文件大小
+//
+//	CremoteclientDlg* pCD = (CremoteclientDlg*)parametor;
+//
+//	int getsz = 0;
+//	std::string pathName(pCD->pathName);
+//	obj->SendCommandPacket(4, pathName);
+//	
+//	//DataBag bag1(4, pathName);
+//	//obj->SendMes(bag1);
+//	char* buf = new char[100 * 1024];
+//	memset(buf, 0, 100 * 1024);
+//	UINT index = 0;
+//
+//	while (obj->recvMes(buf,100*1024,&index,&bag1) == 4)
+//	{
+//		if (bag1.m_data.size() == 0)
+//		{
+//			AfxMessageBox("文件打开失败");
+//			break;
+//		}
+//		size_t len = fwrite(bag1.m_data.c_str(), 1, bag1.m_data.size(), pCD->pfile);
+//		getsz += bag1.m_data.size();
+//		if (getsz == fileSize) {
+//			AfxMessageBox("文件下载完毕");
+//			break;
+//		}
+//	}
+//	CClientController::getObject()->m_dLoad.ShowWindow(SW_HIDE);
+//	fclose(pCD->pfile);
+//	//delete parametor;
+//	delete buf;
+//	_endthread();
+//}
 //CString CremoteclientDlg::GetRemotePathName(HTREEITEM hTree)
 //{
 //	CString strpath, str;
@@ -325,6 +335,7 @@ void WINAPIV CremoteclientDlg::_ThreadDoenLoadFunction(void* parametor) {
 //	return pathName;
 //}
 
+//删除目录控件下整个子目录
 void CremoteclientDlg::deleteSubAllDir(HTREEITEM hTree) {
 	HTREEITEM sub = NULL;
 	do 
@@ -376,7 +387,7 @@ void CremoteclientDlg::deleteSubAllDir(HTREEITEM hTree) {
 //	
 //}
 
-
+//左键单击目录控件
 void CremoteclientDlg::OnNMClickTreeFile(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	*pResult = 0;
@@ -388,26 +399,28 @@ void CremoteclientDlg::OnNMClickTreeFile(NMHDR* pNMHDR, LRESULT* pResult)
 	{
 		return;
 	}
-	//if (m_tree.GetChildItem(htr) == NULL)//如果该项是文件（没有子目录）
-	//{
-	//	return;
-	//}
-	deleteSubAllDir(htr);
-	m_fileList.DeleteAllItems();
-	std::string strPath = CClientController::getObject()->GetRemotePathName(htr);
-	DataBag bag(2, strPath);
-	CClientSocket* obj = CClientSocket::getObject();
-	obj->SendMes(bag);
+	//清空
+	deleteSubAllDir(htr);//删除目录
+	m_fileList.DeleteAllItems();//删除所有图标
+
+	CClientController* obj = CClientController::getObject();
+	std::string strPath = obj->GetRemotePathName(htr);
+	//DataBag bag(2, strPath);
+	//CClientSocket* obj = CClientSocket::getObject();
+	//obj->SendMes(bag);
+	obj->SendCommandPacket(2, strPath);
+
 	DFInfo info;
 	info.IsHasNext = true;
 	//m_fileList.InsertItem(0, "");//插入一个空（mfc控件检测不到第一个的右击）
 	while (info.IsHasNext) {
-		if (obj->recvMes() == 2) {
-			info = *(PDFInfo)obj->databag.m_data.c_str();
+		if (obj->RecvCommand() == 2) {
+			info = *(PDFInfo)obj->getResult().c_str();
 			if (!info.IsInvalid) continue;
 			if (CString(info.fileName) == "." || CString(info.fileName) == "..")
 				continue;
 			//HTREEITEM sub = m_tree.InsertItem(info.fileName, htr, TVI_LAST);
+			//判断是不是目录，分别放入目录控件和文件控件
 			if (info.IsDirectory) {
 				//文件夹处理
 				m_tree.InsertItem(info.fileName, htr, TVI_LAST);
@@ -421,7 +434,7 @@ void CremoteclientDlg::OnNMClickTreeFile(NMHDR* pNMHDR, LRESULT* pResult)
 	
 }
 
-
+//右键单击（右键选择菜单）
 void CremoteclientDlg::OnNMRClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
@@ -442,45 +455,38 @@ void CremoteclientDlg::OnNMRClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 	if (pMenu != NULL)
 		pMenu->TrackPopupMenu(TPM_RIGHTBUTTON | TPM_LEFTALIGN, point.x, point.y, this);
 }
-
-
+//文件执行
 void CremoteclientDlg::OnExecFile()
 {
-	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();
-	DataBag dag(3, pathName);
-	CClientSocket::getObject()->SendMes(dag);
-	if (CClientSocket::getObject()->recvMes() == 3)
-		AfxMessageBox(CClientSocket::getObject()->databag.m_data.c_str());
+	CClientController* obj = CClientController::getObject();
+	std::string pathName = obj->GetRemoteFilePathName();
+	obj->SendCommandPacket(3, pathName);
+	if (obj->RecvCommand() == 3)
+		AfxMessageBox(obj->getResult().c_str());
 }
 
-
+//文件删除
 void CremoteclientDlg::OnDelFile()
 {
-	//int fileSelectName = m_fileList.GetSelectionMark();
-	//CString fileName = m_fileList.GetItemText(fileSelectName, 0);
-
-	//std::string pathName = GetRemotePathName(m_tree.GetSelectedItem());
-	//pathName += fileName;
-	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();
-	//DataBag bag(10, pathName);
-	CClientController::getObject()->SendCommandPacket(10, pathName);
-	//CClientSocket::getObject()->SendMes(bag);
-	if (CClientSocket::getObject()->recvMes() == 10) {
-		AfxMessageBox(CClientSocket::getObject()->databag.m_data.c_str());
+	CClientController* obj = CClientController::getObject();
+	std::string pathName = obj->GetRemoteFilePathName();
+	obj->SendCommandPacket(10, pathName);
+	if (obj->RecvCommand() == 10) {
+		AfxMessageBox(obj->getResult().c_str());
 		m_fileList.DeleteItem(m_fileList.GetSelectionMark());
 	}
 }
+
+//***************************************************************************************************************重构
 #include <Mmsystem.h>
 #pragma comment( lib,"winmm.lib" )
 void CremoteclientDlg::OnDownloadFile()
 {
-	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();//获取完整文件名
-	CClientSocket* obj = CClientSocket::getObject();
+	CClientController* obj = CClientController::getObject();
+	std::string pathName = obj->GetRemoteFilePathName();//获取完整文件名
 	
 	this->pathName = pathName.c_str();
 	
-
-
 	//获取文件保存路径
 	CFileDialog dia(false, "*", m_fileList.GetItemText(m_fileList.GetSelectionMark(), 0).GetBuffer(), 
 		OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT, NULL, this);
@@ -501,13 +507,11 @@ void CremoteclientDlg::OnDownloadFile()
 		return;
 	}
 
-	//DataBag bag(5, pathName);
-	//obj->SendMes(bag);
 	CClientController::getObject()->SendCommandPacket(5, pathName);
-	if (obj->recvMes() == 5) { //先获取文件大小
-		ULONGLONG fileSize = *(ULONGLONG*)obj->databag.m_data.c_str();//文件大小
+	if (obj->RecvCommand() == 5) { //先获取文件大小
+		ULONGLONG fileSize = *(ULONGLONG*)obj->getResult().c_str();//文件大小
 		char fs[20]{};
-		_ultoa_s(fileSize, fs, 20, 10);
+		_ultoa_s((ULONG)fileSize, fs, 20, 10);
 		CString info = "文件正在下载中，总字节：";
 		info += fs;
 		CClientController* ctl = CClientController::getObject();
@@ -520,7 +524,7 @@ void CremoteclientDlg::OnDownloadFile()
 		//m_obj.ShowWindow(SW_SHOW);
 		ctl->m_dLoad.SetActiveWindow();
 
-		_beginthread(CremoteclientDlg::_ThreadDoenLoadFunction, 0, this);
+		_beginthread(&CClientController::_ThreadDoenLoadFunction, 0, this);
 	}
 		//_beginthread(CremoteclientDlg::_ThreadDoenLoadFunction,0,(void*)mys);
 		/*
@@ -558,23 +562,22 @@ void CremoteclientDlg::OnDownloadFile()
 	//fclose(pFile);
 }
 
+//获取文件大小
 void CremoteclientDlg::Ongetfilesize()
 {
-	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();
-	//DataBag bag(5, pathName);
-	//CClientSocket::getObject()->SendMes(bag);
-	CClientController::getObject()->SendCommandPacket(5, pathName);
-
-	if (CClientSocket::getObject()->recvMes() == 5){
-		ULONGLONG fileSz = *(ULONGLONG*)CClientSocket::getObject()->databag.m_data.c_str();
+	CClientController* obj = CClientController::getObject();
+	std::string pathName = obj->GetRemoteFilePathName();
+	obj->SendCommandPacket(5, pathName);
+		if (obj->RecvCommand() == 5){
+		ULONGLONG fileSz = *(ULONGLONG*)obj->getResult().c_str();
 		char str[20]{};
-		_ultoa_s(fileSz, str, 20, 10);
+		_ultoa_s((ULONG)fileSz, str, 20, 10);
 		strcat_s(str, 20, "byte");
 		AfxMessageBox(str);
 	}		
 }
 
-
+//ip控件修改
 void CremoteclientDlg::OnIpnFieldchangedIpaddressIp(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMIPADDRESS pIPAddr = reinterpret_cast<LPNMIPADDRESS>(pNMHDR);
@@ -583,7 +586,7 @@ void CremoteclientDlg::OnIpnFieldchangedIpaddressIp(NMHDR* pNMHDR, LRESULT* pRes
 	CClientSocket::getObject()->UpData(m_ipAddr, atoi(m_port.GetBuffer()));
 }
 
-
+//端口控件修改
 void CremoteclientDlg::OnEnChangeEditPort()
 {
 	UpdateData(FALSE);

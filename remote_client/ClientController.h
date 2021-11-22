@@ -48,8 +48,16 @@ public:
 	//向数据转发至网络层
 	int SendCommandPacket(int cmd,std::string& buf);
 	int SendCommandPacket(int cmd);
+	int RecvCommand();
+	//recvMes(buf,100*1024,&index,&bag1)
+	//recvMes(char* buf, int maxSize, UINT* index, DataBag* bag)
+	int RecvCommand(char* buf, int maxSize, UINT* index, DataBag* bag);
+	int GetImage();
+	const std::string& getResult();
 	//获取单列
 	static CClientController* getObject();
+	static void WINAPIV _ThreadDoenLoadFunction(void* parametor);
+	static void __cdecl _threadMonitor(void*);
 private:
 	typedef LRESULT(CClientController::* LPFUN)(UINT, WPARAM, LPARAM);
 	static std::map<UINT, LPFUN> m_mapFun;

@@ -145,6 +145,99 @@ LRESULT CClientController::OnSendPacket(UINT message,
 	return CClientSocket::getObject()->SendMes(*(DataBag*)lParam);
 }
 
+void WINAPIV CClientController::_ThreadDoenLoadFunction(void* parametor)
+{
+	CClientSocket* obj = CClientSocket::getObject();
+	ULONGLONG fileSize = *(ULONGLONG*)obj->databag.m_data.c_str();//文件大小
+
+	CremoteclientDlg* pCD = (CremoteclientDlg*)parametor;
+
+	int getsz = 0;
+	std::string pathName(pCD->pathName);
+	DataBag bag1(4, pathName);
+	obj->SendMes(bag1);
+
+	char* buf = new char[100 * 1024];
+	memset(buf, 0, 100 * 1024);
+	UINT index = 0;
+	memset(&bag1, 0, sizeof bag1);
+	while (obj->recvMes(buf, 100 * 1024, &index, &bag1) == 4)
+	{
+		if (bag1.m_data.size() == 0)
+		{
+			AfxMessageBox("文件打开失败");
+			break;
+		}
+		size_t len = fwrite(bag1.m_data.c_str(), 1, bag1.m_data.size(), pCD->pfile);
+		getsz += bag1.m_data.size();
+		if (getsz == fileSize) {
+			AfxMessageBox("文件下载完毕");
+			break;
+		}
+	}
+	CClientController::getObject()->m_dLoad.ShowWindow(SW_HIDE);
+	fclose(pCD->pfile);
+	delete buf;
+	_endthread();
+}
+
+void __cdecl CClientController::_threadMonitor(void* th)
+{
+	Sleep(50);
+	CremoteclientDlg* thiz = (CremoteclientDlg*)th;
+	while (!CClientSocket::getObject())
+	{
+		Sleep(1);
+	}
+	CClientSocket* obj = CClientSocket::getObject();
+	int bufsz = 1024 * 1024 * 10;//10mb
+	char* buf = new char[bufsz];
+	memset(buf, 0, bufsz);
+	UINT index = 0;
+	int res = 0;
+	
+
+	while (true) {
+		if (thiz->isNullMonitor == false)
+		{
+			DataBag bag(7);
+			obj->SendMes(bag);
+			res = obj->recvMes(buf, bufsz, &index, &bag);
+
+			if (res > 0 && bag.cmd == 7)
+			{
+
+				BYTE* data = (BYTE*)bag.m_data.c_str();
+
+				HGLOBAL hMen = GlobalAlloc(GMEM_MOVEABLE, 0);
+				if (hMen == NULL)
+				{
+					TRACE("内存不足");
+					Sleep(1);
+					continue;
+				}
+				IStream* iStr = NULL;
+				HRESULT hRet = CreateStreamOnHGlobal(hMen, TRUE, &iStr);
+				if (hRet == S_OK)
+				{
+					ULONG len = 0;
+					iStr->Write(data, bag.m_data.size(), &len);
+					LARGE_INTEGER bg{ 0 };
+					iStr->Seek(bg, STREAM_SEEK_SET, NULL);
+					thiz->imageMonitor.Load(iStr);
+					thiz->isNullMonitor = true;
+				}
+			}
+			Sleep(1);
+			memset(buf, 0, bag.DATA.size());
+			index = 0;
+
+		} Sleep(1);
+	}
+	delete[] buf;
+	_endthread();
+}
+
 LRESULT CClientController::OnSendData(UINT message,
 	WPARAM wParam, LPARAM lParam)
 {
@@ -162,4 +255,14 @@ LRESULT CClientController::OnShowScreenMoniter(UINT message,
 	WPARAM wParam, LPARAM lParam)
 {
 	return m_screenMonitor.DoModal();
+}
+
+int CClientController::RecvCommand()
+{
+	return CClientSocket::getObject()->recvMes();
+}
+
+const std::string& CClientController::getResult()
+{
+	return CClientSocket::getObject()->databag.m_data;
 }
