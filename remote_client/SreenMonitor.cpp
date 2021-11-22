@@ -7,6 +7,7 @@
 #include "afxdialogex.h"
 #include "remote_clientDlg.h"
 #include "ClientSocket.h"
+#include "ClientController.h"
 // CSreenMonitor 对话框
 
 IMPLEMENT_DYNAMIC(CSreenMonitor, CDialog)
@@ -64,8 +65,9 @@ void CSreenMonitor::initMouse()
 {
 	//获取CS屏幕分辨率
 	CClientSocket* obj = CClientSocket::getObject();
-	DataBag bag(11);
-	obj->SendMes(bag);
+	//DataBag bag(11);
+	//obj->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(11);
 	obj->recvMes();
 	int Sx = *(int*)obj->databag.m_data.c_str();
 	int Sy = *(int*)(obj->databag.m_data.c_str() + 4);
@@ -80,7 +82,9 @@ void CSreenMonitor::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nIDEvent == 0) {
-		CremoteclientDlg* dig = (CremoteclientDlg*)GetParent();
+		//CremoteclientDlg* dig = (CremoteclientDlg*)GetParent();
+		/*CClientController::getObject()->dlg*/
+		CremoteclientDlg* dig = &CClientController::getObject()->dlg;
 		if (dig->isNullMonitor)
 		{
 			CRect rect;
@@ -121,9 +125,9 @@ void CSreenMonitor::OnMouseMove(UINT nFlags, CPoint _point)
 	m_MouseEvent.DUM = 4;
 	m_MouseEvent.P = ScreenToRemoteClient(_point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	DataBag bag(6, val);
-	CClientSocket::getObject()->SendMes(bag);
-
+	//DataBag bag(6, val);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(6, val);
 	CDialog::OnMouseMove(nFlags, _point);
 }
 
@@ -134,8 +138,9 @@ void CSreenMonitor::OnLButtonDblClk(UINT nFlags, CPoint _point)
 	m_MouseEvent.DUM = 0;
 	m_MouseEvent.P = ScreenToRemoteClient(_point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	DataBag bag(6, val);
-	CClientSocket::getObject()->SendMes(bag);
+	//DataBag bag(6, val);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(6, val);
 	CDialog::OnLButtonDblClk(nFlags, _point);
 }
 
@@ -146,9 +151,9 @@ void CSreenMonitor::OnLButtonDown(UINT nFlags, CPoint _point)
 	m_MouseEvent.DUM = 1;
 	m_MouseEvent.P = ScreenToRemoteClient(_point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	DataBag bag(6, val);
-	CClientSocket::getObject()->SendMes(bag);
-
+	//DataBag bag(6, val);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(6, val);
 	CDialog::OnLButtonDown(nFlags, _point);
 }
 
@@ -159,9 +164,9 @@ void CSreenMonitor::OnLButtonUp(UINT nFlags, CPoint point)
 	m_MouseEvent.DUM = 2;
 	m_MouseEvent.P = ScreenToRemoteClient(point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	DataBag bag(6, val);
-	CClientSocket::getObject()->SendMes(bag);
-
+	//DataBag bag(6, val);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(6, val);
 
 	CDialog::OnLButtonUp(nFlags, point);
 }
@@ -173,8 +178,9 @@ void CSreenMonitor::OnRButtonUp(UINT nFlags, CPoint point)
 	m_MouseEvent.DUM = 2;
 	m_MouseEvent.P = ScreenToRemoteClient(point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	DataBag bag(6, val);
-	CClientSocket::getObject()->SendMes(bag);
+	//DataBag bag(6, val);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(6,val);
 
 	CDialog::OnRButtonUp(nFlags, point);
 }
@@ -199,8 +205,9 @@ void CSreenMonitor::OnRButtonDown(UINT nFlags, CPoint point)
 	m_MouseEvent.DUM = 1;
 	m_MouseEvent.P = ScreenToRemoteClient(point);
 	std::string val((const char*)&m_MouseEvent, sizeof m_MouseEvent);
-	DataBag bag(6, val);
-	CClientSocket::getObject()->SendMes(bag);
+	//DataBag bag(6, val);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(6,val);
 
 	CDialog::OnRButtonDown(nFlags, point);
 }
@@ -209,13 +216,15 @@ void CSreenMonitor::OnRButtonDown(UINT nFlags, CPoint point)
 void CSreenMonitor::OnBnClickedButton1()
 {
 
-	DataBag bag(8);
-	CClientSocket::getObject()->SendMes(bag);
+	//DataBag bag(8);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(9);
 }
 
 
 void CSreenMonitor::OnBnClickedButton2()
 {
-	DataBag bag(9);
-	CClientSocket::getObject()->SendMes(bag);
+	//DataBag bag(9);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(9);
 }

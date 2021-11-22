@@ -1,11 +1,22 @@
 #include "pch.h"
 #include "ClientController.h"
 
+CClientController* CClientController::CtlObject = nullptr;
 CClientController::deobj CClientController::DeObj;
 
+typedef LRESULT(CClientController::* LPFUN)(UINT, WPARAM, LPARAM);
+std::map<UINT, LPFUN> CClientController::m_mapFun;
+
 CClientController::CClientController()
-	:m_threadPid(0), 
-	m_threadHandle(INVALID_HANDLE_VALUE)
+	:m_threadPid(-1), 
+	m_dLoad(&dlg),
+	m_threadHandle(INVALID_HANDLE_VALUE),
+	m_screenMonitor(&dlg)
+{
+	
+}
+
+int CClientController::init()
 {
 	struct
 	{
@@ -18,18 +29,15 @@ CClientController::CClientController()
 		{WM_SHOW_SREENMONITER,&CClientController::OnShowScreenMoniter},
 		{(UINT)-1,NULL},
 	};
-	for (int i = 0;data[i]._int != -1;i++)
+	for (int i = 0; data[i]._int != -1; i++)
 	{
 		m_mapFun.insert(std::pair<UINT, LPFUN>(data[i]._int, data[i]._fun));
 	}
-}
-
-int CClientController::init()
-{
 	
+
 	m_threadHandle = (HANDLE)_beginthreadex(0, 0,
 		&CClientController::ThreadEntry, this, 0, &m_threadPid);
-	m_screenMonitor.Create(IDD_DIALOG_SCREEN, &dlg);
+	//int res = m_screenMonitor.Create(IDD_DIALOG_SCREEN, &dlg);
 
 	return 0;
 }
@@ -40,13 +48,25 @@ int CClientController::invoke(CWnd* pWnd)
 	return dlg.DoModal();
 }
 
+int CClientController::SendCommandPacket(int cmd, std::string& buf)
+{
+	DataBag bag(cmd, buf);
+	return CClientSocket::getObject()->SendMes(bag);
+}
+
+int CClientController::SendCommandPacket(int cmd)
+{
+	DataBag bag(cmd);
+	return CClientSocket::getObject()->SendMes(bag);
+}
+
 CClientController* CClientController::getObject()
 {
-	if (myObject == nullptr)
+	if (CtlObject == nullptr)
 	{
-		myObject = new CClientController;
+		CtlObject = new CClientController;
 	}
-	return myObject;
+	return CtlObject;
 }
 
 
@@ -61,7 +81,7 @@ unsigned __stdcall CClientController::ThreadEntry(void* th)
 void CClientController::ThreadFun()
 {
 	MSG msg;
-	while (::GetMessageA(&msg,NULL,0,0))
+	while (::GetMessageA(&msg, NULL, 0, 0))
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
@@ -81,9 +101,9 @@ void CClientController::ThreadFun()
 		else
 		{
 			auto value = m_mapFun.find(msg.message);
-			if(value != m_mapFun.end())
-			(this->*value->second)(msg.message,
-				msg.wParam, msg.lParam);
+			if (value != m_mapFun.end())
+				(this->*value->second)(msg.message,
+					msg.wParam, msg.lParam);
 		}
 	}
 }
@@ -99,18 +119,36 @@ LRESULT CClientController::SendMSG(MSG& msg)
 	CloseHandle(hEvent);
 	return info.res;
 }
+CString CClientController::GetRemotePathName(HTREEITEM hTree)
+{
+	CString strpath, str;
+	do
+	{
+		str = dlg.m_tree.GetItemText(hTree);
+		strpath = str + "\\" + strpath;
+		hTree = dlg.m_tree.GetParentItem(hTree);
+	} while (hTree != NULL);
+	return strpath;
+}
+CString CClientController::GetRemoteFilePathName()
+{
+	int fileSelectName = dlg.m_fileList.GetSelectionMark();
+	CString fileName = dlg.m_fileList.GetItemText(fileSelectName, 0);
+	CString pathName = GetRemotePathName(dlg.m_tree.GetSelectedItem());
+	pathName += fileName;
+	return pathName;
+}
 
 LRESULT CClientController::OnSendPacket(UINT message,
 	WPARAM wParam, LPARAM lParam)
 {
-	//TODO
-	return LRESULT();
+	return CClientSocket::getObject()->SendMes(*(DataBag*)lParam);
 }
 
 LRESULT CClientController::OnSendData(UINT message,
 	WPARAM wParam, LPARAM lParam)
 {
-	//TODO
+	//TODO SendData
 	return LRESULT();
 }
 

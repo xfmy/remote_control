@@ -12,7 +12,7 @@
 #define new DEBUG_NEW
 #endif
 #include "SreenMonitor.h"
-
+#include "ClientController.h"
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -55,7 +55,6 @@ CremoteclientDlg::CremoteclientDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_REMOTE_CLIENT_DIALOG, pParent)
 	, m_ipAddr(0)
 	, m_port(_T(""))
-	, cs(this)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	//获取CS屏幕分辨率
@@ -83,6 +82,8 @@ BEGIN_MESSAGE_MAP(CremoteclientDlg, CDialogEx)
 	ON_COMMAND(ID_DEL_FILE, &CremoteclientDlg::OnDelFile)
 	ON_COMMAND(ID_DOWNLOAD_FILE, &CremoteclientDlg::OnDownloadFile)
 	ON_COMMAND(ID_getFileSize, &CremoteclientDlg::Ongetfilesize)
+	ON_NOTIFY(IPN_FIELDCHANGED, IDC_IPADDRESS_IP, &CremoteclientDlg::OnIpnFieldchangedIpaddressIp)
+	ON_EN_CHANGE(IDC_EDIT_PORT, &CremoteclientDlg::OnEnChangeEditPort)
 END_MESSAGE_MAP()
 
 
@@ -114,6 +115,7 @@ BOOL CremoteclientDlg::OnInitDialog()
 
 	// 设置此对话框的图标。  当应用程序主窗口不是对话框时，框架将自动
 	//  执行此操作
+	//m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);//***************************************************************************
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
@@ -121,6 +123,7 @@ BOOL CremoteclientDlg::OnInitDialog()
 	//m_ipAddr = 0x2AC02902;
 	m_ipAddr = 0x7F000001;
 	m_port = "18086";
+	CClientSocket::getObject()->UpData(m_ipAddr, atoi(m_port.GetBuffer()));
 	UpdateData(false);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -234,13 +237,14 @@ void __cdecl CremoteclientDlg::_threadMonitor(void* th)//th:  CremoteclientDlg�
 void CremoteclientDlg::OnBnClickedButtonDemo()
 {
 	UpdateData();
-	int res = CClientSocket::getObject()->init(m_ipAddr,_ttoi(m_port));
+	int res = CClientSocket::getObject()->init();
 	if (res == 0) {
 		(CButton*)GetDlgItem(IDC_BUTTON_DEMO)->EnableWindow(false);
 		//TODO 启动屏幕监控 处理
 		_beginthread(_threadMonitor, 0, this);
-		cs.initMouse();
-		cs.DoModal();
+		//TODO 处理
+		CClientController::getObject()->m_screenMonitor.initMouse();
+		CClientController::getObject()->m_screenMonitor.DoModal();
 	}
 }
 
@@ -295,31 +299,31 @@ void WINAPIV CremoteclientDlg::_ThreadDoenLoadFunction(void* parametor) {
 			break;
 		}
 	}
-	pCD->m_obj.ShowWindow(SW_HIDE);
+	CClientController::getObject()->m_dLoad.ShowWindow(SW_HIDE);
 	fclose(pCD->pfile);
 	//delete parametor;
 	delete buf;
 	_endthread();
 }
-CString CremoteclientDlg::GetRemotePathName(HTREEITEM hTree)
-{
-	CString strpath, str;
-	do 
-	{
-		str = m_tree.GetItemText(hTree);
-		strpath = str + "\\" + strpath;
-		hTree = m_tree.GetParentItem(hTree);
-	} while (hTree != NULL);
-	return strpath;
-}
-CString CremoteclientDlg::GetRemoteFilePathName()
-{
-	int fileSelectName = m_fileList.GetSelectionMark();
-	CString fileName = m_fileList.GetItemText(fileSelectName, 0);
-	CString pathName = GetRemotePathName(m_tree.GetSelectedItem());
-	pathName += fileName;
-	return pathName;
-}
+//CString CremoteclientDlg::GetRemotePathName(HTREEITEM hTree)
+//{
+//	CString strpath, str;
+//	do 
+//	{
+//		str = m_tree.GetItemText(hTree);
+//		strpath = str + "\\" + strpath;
+//		hTree = m_tree.GetParentItem(hTree);
+//	} while (hTree != NULL);
+//	return strpath;
+//}
+//CString CremoteclientDlg::GetRemoteFilePathName()
+//{
+//	int fileSelectName = m_fileList.GetSelectionMark();
+//	CString fileName = m_fileList.GetItemText(fileSelectName, 0);
+//	CString pathName = GetRemotePathName(m_tree.GetSelectedItem());
+//	pathName += fileName;
+//	return pathName;
+//}
 
 void CremoteclientDlg::deleteSubAllDir(HTREEITEM hTree) {
 	HTREEITEM sub = NULL;
@@ -390,7 +394,7 @@ void CremoteclientDlg::OnNMClickTreeFile(NMHDR* pNMHDR, LRESULT* pResult)
 	//}
 	deleteSubAllDir(htr);
 	m_fileList.DeleteAllItems();
-	std::string strPath = GetRemotePathName(htr);
+	std::string strPath = CClientController::getObject()->GetRemotePathName(htr);
 	DataBag bag(2, strPath);
 	CClientSocket* obj = CClientSocket::getObject();
 	obj->SendMes(bag);
@@ -442,21 +446,7 @@ void CremoteclientDlg::OnNMRClickList2(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CremoteclientDlg::OnExecFile()
 {
-	//CPoint point;
-	//GetCursorPos(&point);
-	//m_fileList.ScreenToClient(&point);
-	//int htr = m_fileList.HitTest(point, 0);
-	//if (htr < 0)//无选中
-	//{
-	//	return;
-	//}
-	//int fileSelectName = m_fileList.GetSelectionMark();
-	//CString fileName = m_fileList.GetItemText(fileSelectName, 0);
-	//std::string pathName = GetRemotePathName(m_tree.GetSelectedItem());//TODO 左区与又区组合
-	//pathName += fileName;
-	//DataBag dag(3, pathName);
-
-	std::string pathName = GetRemoteFilePathName();
+	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();
 	DataBag dag(3, pathName);
 	CClientSocket::getObject()->SendMes(dag);
 	if (CClientSocket::getObject()->recvMes() == 3)
@@ -471,9 +461,10 @@ void CremoteclientDlg::OnDelFile()
 
 	//std::string pathName = GetRemotePathName(m_tree.GetSelectedItem());
 	//pathName += fileName;
-	std::string pathName = GetRemoteFilePathName();
-	DataBag bag(10, pathName);
-	CClientSocket::getObject()->SendMes(bag);
+	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();
+	//DataBag bag(10, pathName);
+	CClientController::getObject()->SendCommandPacket(10, pathName);
+	//CClientSocket::getObject()->SendMes(bag);
 	if (CClientSocket::getObject()->recvMes() == 10) {
 		AfxMessageBox(CClientSocket::getObject()->databag.m_data.c_str());
 		m_fileList.DeleteItem(m_fileList.GetSelectionMark());
@@ -483,7 +474,7 @@ void CremoteclientDlg::OnDelFile()
 #pragma comment( lib,"winmm.lib" )
 void CremoteclientDlg::OnDownloadFile()
 {
-	std::string pathName = GetRemoteFilePathName();//获取完整文件名
+	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();//获取完整文件名
 	CClientSocket* obj = CClientSocket::getObject();
 	
 	this->pathName = pathName.c_str();
@@ -510,20 +501,24 @@ void CremoteclientDlg::OnDownloadFile()
 		return;
 	}
 
-	DataBag bag(5, pathName);
-	obj->SendMes(bag);
+	//DataBag bag(5, pathName);
+	//obj->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(5, pathName);
 	if (obj->recvMes() == 5) { //先获取文件大小
 		ULONGLONG fileSize = *(ULONGLONG*)obj->databag.m_data.c_str();//文件大小
 		char fs[20]{};
 		_ultoa_s(fileSize, fs, 20, 10);
 		CString info = "文件正在下载中，总字节：";
 		info += fs;
-		m_obj.Create(IDD_DLG_DOWNLOAD, this);
-		m_obj.m_ion_str.SetWindowTextA(info);
-		m_obj.m_ion_str.UpdateData(FALSE);
+		CClientController* ctl = CClientController::getObject();
+
+		ctl->m_dLoad.Create(IDD_DLG_DOWNLOAD, this);
+		ctl->m_dLoad.m_ion_str.SetWindowTextA(info);
+		ctl->m_dLoad.m_ion_str.UpdateData(FALSE);
 		UpdateData(FALSE);
-		m_obj.ShowWindow(SW_SHOW);
-		m_obj.SetActiveWindow();
+		CClientController::getObject()->m_dLoad.ShowWindow(SW_SHOW);
+		//m_obj.ShowWindow(SW_SHOW);
+		ctl->m_dLoad.SetActiveWindow();
 
 		_beginthread(CremoteclientDlg::_ThreadDoenLoadFunction, 0, this);
 	}
@@ -563,26 +558,13 @@ void CremoteclientDlg::OnDownloadFile()
 	//fclose(pFile);
 }
 
-
 void CremoteclientDlg::Ongetfilesize()
 {
-	//TODO 获取文件大小
-	//CPoint point;
-	//GetCursorPos(&point);
-	//m_fileList.ScreenToClient(&point);
-	//int htr = m_fileList.HitTest(point, 0);
-	//if (htr < 0)//无选中
-	//{
-	//	return;
-	//}
-	/*int fileSelectName = m_fileList.GetSelectionMark();
-	CString fileName = m_fileList.GetItemText(fileSelectName, 0);
+	std::string pathName = CClientController::getObject()->GetRemoteFilePathName();
+	//DataBag bag(5, pathName);
+	//CClientSocket::getObject()->SendMes(bag);
+	CClientController::getObject()->SendCommandPacket(5, pathName);
 
-	std::string pathName = GetRemotePathName(m_tree.GetSelectedItem());
-	pathName += fileName;*/
-	std::string pathName = GetRemoteFilePathName();
-	DataBag bag(5, pathName);
-	CClientSocket::getObject()->SendMes(bag);
 	if (CClientSocket::getObject()->recvMes() == 5){
 		ULONGLONG fileSz = *(ULONGLONG*)CClientSocket::getObject()->databag.m_data.c_str();
 		char str[20]{};
@@ -590,4 +572,20 @@ void CremoteclientDlg::Ongetfilesize()
 		strcat_s(str, 20, "byte");
 		AfxMessageBox(str);
 	}		
+}
+
+
+void CremoteclientDlg::OnIpnFieldchangedIpaddressIp(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMIPADDRESS pIPAddr = reinterpret_cast<LPNMIPADDRESS>(pNMHDR);
+	*pResult = 0;
+	UpdateData(FALSE);
+	CClientSocket::getObject()->UpData(m_ipAddr, atoi(m_port.GetBuffer()));
+}
+
+
+void CremoteclientDlg::OnEnChangeEditPort()
+{
+	UpdateData(FALSE);
+	CClientSocket::getObject()->UpData(m_ipAddr, atoi(m_port.GetBuffer()));
 }

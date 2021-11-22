@@ -185,6 +185,7 @@
   <ItemGroup>
     <ClInclude Include="ClientController.h" />
     <ClInclude Include="ClientSocket.h" />
+    <ClInclude Include="DataBag.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="m_downLoad.h" />
     <ClInclude Include="pch.h" />
@@ -197,6 +198,7 @@
   <ItemGroup>
     <ClCompile Include="ClientController.cpp" />
     <ClCompile Include="ClientSocket.cpp" />
+    <ClCompile Include="DataBag.cpp" />
     <ClCompile Include="m_downLoad.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

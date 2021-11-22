@@ -45,6 +45,9 @@
     <ClInclude Include="ClientController.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DataBag.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="remote_client.cpp">
@@ -66,6 +69,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="ClientController.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataBag.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

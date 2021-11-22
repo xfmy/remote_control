@@ -5,6 +5,7 @@
 #pragma once
 #include "SreenMonitor.h"
 #include "m_downLoad.h"
+
 // CremoteclientDlg 对话框
 class CremoteclientDlg : public CDialogEx
 {
@@ -32,11 +33,12 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+
 	//视频监控多线程函数
 	static void __cdecl _threadMonitor(void*);
 	CImage imageMonitor;
 	bool isNullMonitor = false;
-	CSreenMonitor cs;
+	//CSreenMonitor cs;
 	afx_msg void OnBnClickedButtonDemo();
 	// ip控件绑定变量
 	DWORD m_ipAddr;
@@ -44,14 +46,13 @@ public:
 	CString m_port;
 	// 目录控件
 	CTreeCtrl m_tree;
-
 	FILE* pfile;
 	CString pathName;
 
-	CString GetRemotePathName(HTREEITEM hTree);
-	CString GetRemoteFilePathName();
+//	CString GetRemotePathName(HTREEITEM hTree);
+//	CString GetRemoteFilePathName();
 	void deleteSubAllDir(HTREEITEM hTree);
-	m_downLoad m_obj;
+	//m_downLoad m_obj;
 	afx_msg void OnBnClickedButtonDemo2();
 	static void WINAPIV _ThreadDoenLoadFunction(void* parametor);
 //	afx_msg void OnNMDblclkTreeFile(NMHDR* pNMHDR, LRESULT* pResult);
@@ -63,4 +64,6 @@ public:
 	afx_msg void OnDelFile();
 	afx_msg void OnDownloadFile();
 	afx_msg void Ongetfilesize();
+	afx_msg void OnIpnFieldchangedIpaddressIp(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnEnChangeEditPort();
 };
