@@ -48,16 +48,24 @@ int CClientController::invoke(CWnd* pWnd)
 	return dlg.DoModal();
 }
 
-int CClientController::SendCommandPacket(int cmd, std::string& buf)
+void CClientController::SendCommandPacket(int cmd, std::string& buf)
 {
 	DataBag bag(cmd, buf);
-	return CClientSocket::getObject()->SendMes(bag);
+	CClientSocket* obj = CClientSocket::getObject();
+	//EnterCriticalSection(&obj->RtlSend);
+	CClientSocket::getObject()->addPacket(bag);
+	//LeaveCriticalSection(&obj->RtlSend);
+	//return CClientSocket::getObject()->SendMes(bag);
 }
 
-int CClientController::SendCommandPacket(int cmd)
+void CClientController::SendCommandPacket(int cmd)
 {
 	DataBag bag(cmd);
-	return CClientSocket::getObject()->SendMes(bag);
+	CClientSocket* obj = CClientSocket::getObject();
+	//EnterCriticalSection(&obj->RtlSend);
+	CClientSocket::getObject()->addPacket(bag);
+	//LeaveCriticalSection(&obj->RtlSend);
+	//return CClientSocket::getObject()->SendMes(bag);
 }
 
 CClientController* CClientController::getObject()
@@ -147,37 +155,40 @@ LRESULT CClientController::OnSendPacket(UINT message,
 
 void WINAPIV CClientController::_ThreadDoenLoadFunction(void* parametor)
 {
-	CClientSocket* obj = CClientSocket::getObject();
-	ULONGLONG fileSize = *(ULONGLONG*)obj->databag.m_data.c_str();//文件大小
+	//CClientSocket* obj = CClientSocket::getObject();
+	CClientController* obj = CClientController::getObject();
+	//ULONGLONG fileSize = *(ULONGLONG*)obj->databag.m_data.c_str();//文件大小
 
 	CremoteclientDlg* pCD = (CremoteclientDlg*)parametor;
 
 	int getsz = 0;
 	std::string pathName(pCD->pathName);
-	DataBag bag1(4, pathName);
-	obj->SendMes(bag1);
-
-	char* buf = new char[100 * 1024];
-	memset(buf, 0, 100 * 1024);
-	UINT index = 0;
-	memset(&bag1, 0, sizeof bag1);
-	while (obj->recvMes(buf, 100 * 1024, &index, &bag1) == 4)
+	//DataBag bag1(4, pathName);
+	//obj->SendMes(bag1);
+	obj->SendCommandPacket(4, pathName);
+	//char* buf = new char[100 * 1024];
+	//memset(buf, 0, 100 * 1024);
+	//UINT index = 0;
+	//memset(&bag1, 0, sizeof bag1);
+	//while (obj->recvMes(buf, 100 * 1024, &index, &bag1) == 4)
+	std::string res;
+	while((res = obj->RecvCommand(4)).size() != 0)
 	{
-		if (bag1.m_data.size() == 0)
-		{
-			AfxMessageBox("文件打开失败");
-			break;
-		}
-		size_t len = fwrite(bag1.m_data.c_str(), 1, bag1.m_data.size(), pCD->pfile);
-		getsz += bag1.m_data.size();
-		if (getsz == fileSize) {
+		//if (bag1.m_data.size() == 0)
+		//{
+		//	AfxMessageBox("文件打开失败");
+		//	break;
+		//}
+		size_t len = fwrite(res.c_str(), 1, res.size(), pCD->pfile);
+		getsz += res.size();
+		if (getsz == obj->fileSize) {
 			AfxMessageBox("文件下载完毕");
 			break;
 		}
 	}
 	CClientController::getObject()->m_dLoad.ShowWindow(SW_HIDE);
 	fclose(pCD->pfile);
-	delete buf;
+	//delete buf;
 	_endthread();
 }
 
@@ -185,30 +196,32 @@ void __cdecl CClientController::_threadMonitor(void* th)
 {
 	Sleep(50);
 	CremoteclientDlg* thiz = (CremoteclientDlg*)th;
+	CClientController* obj = CClientController::getObject();
 	while (!CClientSocket::getObject())
 	{
 		Sleep(1);
 	}
-	CClientSocket* obj = CClientSocket::getObject();
-	int bufsz = 1024 * 1024 * 10;//10mb
-	char* buf = new char[bufsz];
-	memset(buf, 0, bufsz);
-	UINT index = 0;
-	int res = 0;
+	//CClientSocket* obj = CClientSocket::getObject();
+	//int bufsz = 1024 * 1024 * 10;//10mb
+	//char* buf = new char[bufsz];
+	//memset(buf, 0, bufsz);
+	//UINT index = 0;
+	//int res = 0;
 	
 
 	while (true) {
 		if (thiz->isNullMonitor == false)
 		{
 			DataBag bag(7);
-			obj->SendMes(bag);
-			res = obj->recvMes(buf, bufsz, &index, &bag);
-
-			if (res > 0 && bag.cmd == 7)
+			obj->SendCommandPacket(7);
+			//obj->SendMes(bag);
+			//res = obj->recvMes(buf, bufsz, &index, &bag);
+			std::string res = obj->RecvCommand(7);
+			if (res.size() > 0/** && bag.cmd == 7*/)
 			{
 
-				BYTE* data = (BYTE*)bag.m_data.c_str();
-
+				//BYTE* data = (BYTE*)bag.m_data.c_str();
+				BYTE* data = (BYTE*)res.c_str();
 				HGLOBAL hMen = GlobalAlloc(GMEM_MOVEABLE, 0);
 				if (hMen == NULL)
 				{
@@ -221,7 +234,8 @@ void __cdecl CClientController::_threadMonitor(void* th)
 				if (hRet == S_OK)
 				{
 					ULONG len = 0;
-					iStr->Write(data, bag.m_data.size(), &len);
+					//iStr->Write(data, bag.m_data.size(), &len);
+					iStr->Write(data, res.size(), &len);
 					LARGE_INTEGER bg{ 0 };
 					iStr->Seek(bg, STREAM_SEEK_SET, NULL);
 					thiz->imageMonitor.Load(iStr);
@@ -229,12 +243,12 @@ void __cdecl CClientController::_threadMonitor(void* th)
 				}
 			}
 			Sleep(1);
-			memset(buf, 0, bag.DATA.size());
-			index = 0;
+			//memset(buf, 0, bag.DATA.size());
+			//index = 0;
 
 		} Sleep(1);
 	}
-	delete[] buf;
+	//delete[] buf;
 	_endthread();
 }
 
@@ -257,12 +271,25 @@ LRESULT CClientController::OnShowScreenMoniter(UINT message,
 	return m_screenMonitor.DoModal();
 }
 
-int CClientController::RecvCommand()
+std::string CClientController::RecvCommand(int nCmd)
 {
-	return CClientSocket::getObject()->recvMes();
+	return CClientSocket::getObject()->GetResultInfo(nCmd);
+		//return CClientSocket::getObject()->recvMes();
 }
 
-const std::string& CClientController::getResult()
-{
-	return CClientSocket::getObject()->databag.m_data;
-}
+//void __cdecl CClientController::_threadDialogDomel(void*arg) {
+//	//CClientController::getObject()->m_screenMonitor.DoModal();
+//	//ctl->m_dLoad.Create(IDD_DLG_DOWNLOAD, this);
+//	CClientController::getObject()->m_screenMonitor.Create(IDD_DIALOG_SCREEN);
+//	CClientController::getObject()->m_screenMonitor.ShowWindow(SW_SHOW);
+//	while (true)
+//	{
+//
+//	}
+//	_endthread();
+//}
+
+//const std::string& CClientController::getResult()
+//{
+//	return CClientSocket::getObject()->databag.m_data;
+//}

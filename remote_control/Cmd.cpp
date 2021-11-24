@@ -97,6 +97,7 @@ int CCommand::downLoadFile(std::list<DataBag>& m_list, DataBag& bag)
 	}
 	size_t sz{};
 	do {//此处可以改成一次读1kb，读2次 while判断条件修改
+		//可以改成1mb
 		char fileFormat[3072]{};
 		sz = fread(fileFormat, 1, 3072, fd);
 

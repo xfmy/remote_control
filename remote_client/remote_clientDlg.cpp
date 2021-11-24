@@ -241,19 +241,25 @@ HCURSOR CremoteclientDlg::OnQueryDragIcon()
 //	_endthread();
 //}
 
+//TODO 此函数大量需要修改
 //链接按钮按下
 void CremoteclientDlg::OnBnClickedButtonDemo()
 {
 	UpdateData();
 	CClientController* obj = CClientController::getObject();
-	int res = CClientSocket::getObject()->init();
+	int res = CClientSocket::getObject()->init();//初始化
 	if (res == 0) {
 		(CButton*)GetDlgItem(IDC_BUTTON_DEMO)->EnableWindow(false);
+
+		//启动网络层发送线程
+		_beginthread(&CClientSocket::_threadSendPacketFun, 0, CClientSocket::getObject());
+		_beginthread(&CClientSocket::_threadRecvPacketFun, 0, CClientSocket::getObject());
 		//TODO 启动屏幕监控 处理
 		_beginthread(CClientController::_threadMonitor, 0, this);
 		//TODO 处理
 		obj->m_screenMonitor.initMouse();
 		obj->m_screenMonitor.DoModal();
+		//_beginthread(CClientController::_threadDialogDomel, 0, this);
 	}
 }
 
@@ -262,14 +268,15 @@ void CremoteclientDlg::OnBnClickedButtonDemo2()
 {
 	CClientController* obj = CClientController::getObject();
 	obj->SendCommandPacket(1);
-	if (obj->RecvCommand() == 1) {
+	std::string res = obj->RecvCommand(1);
+	if (res.size() != 0) {
 		m_tree.DeleteAllItems();
-		for (int i = 0,j =  obj->getResult().size();i < j;i++)
+		for (int i = 0,j =  res.size();i < j;i++)
 		{
-			if (obj->getResult()[i] != '.')
+			if (res[i] != '.')
 			{
 				CString str;
-				str = obj->getResult()[i];
+				str = res[i];
 				str += ":";
 				HTREEITEM htr = m_tree.InsertItem(str.GetBuffer(),TVI_ROOT,TVI_LAST);
 			}
@@ -414,8 +421,9 @@ void CremoteclientDlg::OnNMClickTreeFile(NMHDR* pNMHDR, LRESULT* pResult)
 	info.IsHasNext = true;
 	//m_fileList.InsertItem(0, "");//插入一个空（mfc控件检测不到第一个的右击）
 	while (info.IsHasNext) {
-		if (obj->RecvCommand() == 2) {
-			info = *(PDFInfo)obj->getResult().c_str();
+		std::string res = obj->RecvCommand(2);
+		if (res.size() != 0) {
+			info = *(PDFInfo)res.c_str();
 			if (!info.IsInvalid) continue;
 			if (CString(info.fileName) == "." || CString(info.fileName) == "..")
 				continue;
@@ -461,8 +469,9 @@ void CremoteclientDlg::OnExecFile()
 	CClientController* obj = CClientController::getObject();
 	std::string pathName = obj->GetRemoteFilePathName();
 	obj->SendCommandPacket(3, pathName);
-	if (obj->RecvCommand() == 3)
-		AfxMessageBox(obj->getResult().c_str());
+	std::string res = obj->RecvCommand(3);
+	if (res.size() != 0)
+		AfxMessageBox(res.c_str());
 }
 
 //文件删除
@@ -471,8 +480,9 @@ void CremoteclientDlg::OnDelFile()
 	CClientController* obj = CClientController::getObject();
 	std::string pathName = obj->GetRemoteFilePathName();
 	obj->SendCommandPacket(10, pathName);
-	if (obj->RecvCommand() == 10) {
-		AfxMessageBox(obj->getResult().c_str());
+	std::string res = obj->RecvCommand(10);
+	if (res.size() != 0) {
+		AfxMessageBox(res.c_str());
 		m_fileList.DeleteItem(m_fileList.GetSelectionMark());
 	}
 }
@@ -508,10 +518,11 @@ void CremoteclientDlg::OnDownloadFile()
 	}
 
 	CClientController::getObject()->SendCommandPacket(5, pathName);
-	if (obj->RecvCommand() == 5) { //先获取文件大小
-		ULONGLONG fileSize = *(ULONGLONG*)obj->getResult().c_str();//文件大小
+	std::string res = obj->RecvCommand(5);
+	if (res.size() != 0) { //先获取文件大小
+		CClientController::getObject()->fileSize = *(ULONGLONG*)res.c_str();//文件大小
 		char fs[20]{};
-		_ultoa_s((ULONG)fileSize, fs, 20, 10);
+		_ultoa_s((ULONG)CClientController::getObject()->fileSize, fs, 20, 10);
 		CString info = "文件正在下载中，总字节：";
 		info += fs;
 		CClientController* ctl = CClientController::getObject();
@@ -568,8 +579,9 @@ void CremoteclientDlg::Ongetfilesize()
 	CClientController* obj = CClientController::getObject();
 	std::string pathName = obj->GetRemoteFilePathName();
 	obj->SendCommandPacket(5, pathName);
-		if (obj->RecvCommand() == 5){
-		ULONGLONG fileSz = *(ULONGLONG*)obj->getResult().c_str();
+	std::string res = obj->RecvCommand(5);
+		if (res.size() != 0){
+		ULONGLONG fileSz = *(ULONGLONG*)res.c_str();
 		char str[20]{};
 		_ultoa_s((ULONG)fileSz, str, 20, 10);
 		strcat_s(str, 20, "byte");

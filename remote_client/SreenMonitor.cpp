@@ -66,9 +66,9 @@ void CSreenMonitor::initMouse()
 	//获取CS屏幕分辨率
 	CClientController* obj = CClientController::getObject();
 	obj->SendCommandPacket(11);
-	obj->RecvCommand();
-	int Sx = *(int*)obj->getResult().c_str();
-	int Sy = *(int*)(obj->getResult().c_str() + 4);
+	std::string res = obj->RecvCommand(11);
+	int Sx = *(int*)res.c_str();
+	int Sy = *(int*)(res.c_str() + 4);
 
 	int x = GetSystemMetrics(SM_CXSCREEN);
 	int y = GetSystemMetrics(SM_CYSCREEN);

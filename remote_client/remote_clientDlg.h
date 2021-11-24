@@ -48,6 +48,7 @@ public:
 	CTreeCtrl m_tree;
 	FILE* pfile;
 	CString pathName;
+	
 
 //	CString GetRemotePathName(HTREEITEM hTree);
 //	CString GetRemoteFilePathName();

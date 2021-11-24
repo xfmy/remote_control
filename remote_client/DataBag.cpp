@@ -8,6 +8,7 @@ DataBag::DataBag(const DataBag& obj)
 	cmd = obj.cmd;
 	m_data = obj.m_data;
 	sum = obj.sum;
+	DATA = obj.DATA;
 }
 
 DataBag& DataBag::operator=(const DataBag& obj)
@@ -19,7 +20,7 @@ DataBag& DataBag::operator=(const DataBag& obj)
 	cmd = obj.cmd;
 	m_data = obj.m_data;
 	sum = obj.sum;
-
+	DATA = obj.DATA;
 	return *this;
 }
 

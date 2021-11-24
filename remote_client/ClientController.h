@@ -35,6 +35,9 @@ class CClientController
 	};
 
 public:
+	//下载文件时的文件大小
+	ULONGLONG fileSize;
+
 	CremoteclientDlg dlg;
 	m_downLoad m_dLoad;
 	CSreenMonitor m_screenMonitor;
@@ -46,18 +49,19 @@ public:
 	//启动
 	int invoke(CWnd* pWnd);
 	//向数据转发至网络层
-	int SendCommandPacket(int cmd,std::string& buf);
-	int SendCommandPacket(int cmd);
-	int RecvCommand();
+	void SendCommandPacket(int cmd,std::string& buf);
+	void SendCommandPacket(int cmd);
+	std::string RecvCommand(int cmd);
 	//recvMes(buf,100*1024,&index,&bag1)
 	//recvMes(char* buf, int maxSize, UINT* index, DataBag* bag)
 	int RecvCommand(char* buf, int maxSize, UINT* index, DataBag* bag);
 	int GetImage();
-	const std::string& getResult();
+	//const std::string& getResult();
 	//获取单列
 	static CClientController* getObject();
 	static void WINAPIV _ThreadDoenLoadFunction(void* parametor);
 	static void __cdecl _threadMonitor(void*);
+	//static void __cdecl _threadDialogDomel(void*);
 private:
 	typedef LRESULT(CClientController::* LPFUN)(UINT, WPARAM, LPARAM);
 	static std::map<UINT, LPFUN> m_mapFun;
