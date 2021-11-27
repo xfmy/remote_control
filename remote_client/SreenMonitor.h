@@ -46,10 +46,12 @@ public:
 	MouseEvent m_MouseEvent;
 	//坐标初始化
 	void initMouse();
+	//窗口是否正在显示
+	bool isShou = false;
 	//int infoGroupSend(int LR,int DUM,)
 
 
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	//afx_msg void OnTimer(UINT_PTR nIDEvent);
 	virtual BOOL OnInitDialog();
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);

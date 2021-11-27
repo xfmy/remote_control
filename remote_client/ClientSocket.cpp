@@ -95,8 +95,13 @@ int CClientSocket::init()
 		TRACE("connect error cmd=%d,result=%s", WSAGetLastError(), GetErrorInfo(WSAGetLastError()).c_str());
 		return -1;
 	}
+	UCHAR *pIp = (UCHAR*)&addr.sin_addr.S_un.S_addr;
+	USHORT pt;
+	memcpy(&pt, (char*)&addr.sin_port+1, 1);
+	memcpy((char*)&pt+1, (char*)&addr.sin_port, 1);
+	TRACE("客户端连接成功 端口号%d,ip==%d.%d.%d.%d\n", pt, *pIp, *(pIp + 1), *(pIp + 2), *(pIp + 3));
 	return 0;
-}
+}//127.0.0.1
 
 void CClientSocket::UpData(int ip, int port)
 {
@@ -109,17 +114,19 @@ void WINAPIV CClientSocket::_threadSendPacketFun(void* ary)
 	CClientSocket* thiz = (CClientSocket*)ary;
 	while (thiz->sock != INVALID_SOCKET)
 	{
-		if (thiz->m_sendBag.size() != 0)
+		
+		if (!thiz->m_sendBag.empty() && thiz->sock != 0xdddddddd)//0xdddddddd表示该内存已经释放
 		{
-			TRACE("发包cmd：%d\n", thiz->m_sendBag.front().cmd);
 			EnterCriticalSection(&thiz->RtlSend);
 			int res = thiz->SendMes(thiz->m_sendBag.front());
-			TRACE("发包结果%d\n", res);
+			TRACE("发报内容%d，res = %d\n", thiz->m_sendBag.front().cmd,res);
 			thiz->m_sendBag.pop_front();
 			LeaveCriticalSection(&thiz->RtlSend);
 		}
 		else Sleep(1);
+		
 	}
+	TRACE("send socket close\n");
 	_endthread();
 }
 
@@ -133,16 +140,16 @@ void WINAPIV CClientSocket::_threadRecvPacketFun(void* ary)
 	memset(ptr.get(), 0, maxSize);
 	UINT index = 0;
 	int res = -1;
-	while (thiz->sock != INVALID_SOCKET)
+	while (thiz->sock != INVALID_SOCKET && thiz->sock != 0xdddddddd)//0xdddddddd表示该内存已经释放
 	{
 		//1-11
 		DataBag bag;
-		TRACE("开始收报\n");
+		//TRACE("开始收报\n");
 		res = thiz->recvMes(ptr.get(), maxSize, &index, &bag);
-		TRACE("收报结束index=%d\n",index);
+		//TRACE("收报结束index=%d\n",index);
 		if (res > 0) {
-			TRACE("收报内容%d=%s\n",bag.cmd,bag.m_data.c_str());
-			//EnterCriticalSection(&thiz->RtlRecv);
+			if(bag.cmd != 4)
+			TRACE("收报内容%d\n", bag.cmd);
 			auto it = thiz->m_mapAck.find(res);
 			if (it != thiz->m_mapAck.end())
 			{
@@ -150,10 +157,11 @@ void WINAPIV CClientSocket::_threadRecvPacketFun(void* ary)
 				it->second.push_back(bag);
 				LeaveCriticalSection(&thiz->RtlRecv[res - 1]);
 			}
-			//LeaveCriticalSection(&thiz->RtlRecv);
-		}
+		} else
+			thiz->sock = INVALID_SOCKET;
 	}
 	ptr.reset();
+	TRACE("recv socket close\n");
 	_endthread();
 }
 

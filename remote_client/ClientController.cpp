@@ -38,7 +38,7 @@ int CClientController::init()
 	m_threadHandle = (HANDLE)_beginthreadex(0, 0,
 		&CClientController::ThreadEntry, this, 0, &m_threadPid);
 	//int res = m_screenMonitor.Create(IDD_DIALOG_SCREEN, &dlg);
-
+	//int a = m_dLoad.Create(IDD_DLG_DOWNLOAD, &dlg);
 	return 0;
 }
 
@@ -73,6 +73,7 @@ CClientController* CClientController::getObject()
 	if (CtlObject == nullptr)
 	{
 		CtlObject = new CClientController;
+		constexpr int a = sizeof(CClientSocket);
 	}
 	return CtlObject;
 }
@@ -192,6 +193,7 @@ void WINAPIV CClientController::_ThreadDoenLoadFunction(void* parametor)
 	_endthread();
 }
 
+//TODO去掉定时器
 void __cdecl CClientController::_threadMonitor(void* th)
 {
 	Sleep(50);
@@ -201,54 +203,59 @@ void __cdecl CClientController::_threadMonitor(void* th)
 	{
 		Sleep(1);
 	}
-	//CClientSocket* obj = CClientSocket::getObject();
-	//int bufsz = 1024 * 1024 * 10;//10mb
-	//char* buf = new char[bufsz];
-	//memset(buf, 0, bufsz);
-	//UINT index = 0;
-	//int res = 0;
-	
+	DWORD time = GetCurrentTime();
+	while (obj->m_screenMonitor.isShou) {
+		//if (thiz->isNullMonitor == false)
+		//{
+		DataBag bag(7);
 
-	while (true) {
-		if (thiz->isNullMonitor == false)
+		if (GetCurrentTime() - time < 50)
 		{
-			DataBag bag(7);
-			obj->SendCommandPacket(7);
-			//obj->SendMes(bag);
-			//res = obj->recvMes(buf, bufsz, &index, &bag);
-			std::string res = obj->RecvCommand(7);
-			if (res.size() > 0/** && bag.cmd == 7*/)
+			Sleep(50 - (GetCurrentTime() - time));
+		}
+		time = GetCurrentTime();
+		
+		obj->SendCommandPacket(7);
+		std::string res = obj->RecvCommand(7);
+		if (res.size() > 0)
+		{
+			BYTE* data = (BYTE*)res.c_str();
+			HGLOBAL hMen = GlobalAlloc(GMEM_MOVEABLE, 0);
+			if (hMen == NULL)
 			{
-
-				//BYTE* data = (BYTE*)bag.m_data.c_str();
-				BYTE* data = (BYTE*)res.c_str();
-				HGLOBAL hMen = GlobalAlloc(GMEM_MOVEABLE, 0);
-				if (hMen == NULL)
-				{
-					TRACE("内存不足");
-					Sleep(1);
-					continue;
-				}
-				IStream* iStr = NULL;
-				HRESULT hRet = CreateStreamOnHGlobal(hMen, TRUE, &iStr);
-				if (hRet == S_OK)
-				{
-					ULONG len = 0;
-					//iStr->Write(data, bag.m_data.size(), &len);
-					iStr->Write(data, res.size(), &len);
-					LARGE_INTEGER bg{ 0 };
-					iStr->Seek(bg, STREAM_SEEK_SET, NULL);
-					thiz->imageMonitor.Load(iStr);
-					thiz->isNullMonitor = true;
-				}
+				TRACE("内存不足");
+				Sleep(1);
+				continue;
 			}
-			Sleep(1);
-			//memset(buf, 0, bag.DATA.size());
-			//index = 0;
+			IStream* iStr = NULL;
+			HRESULT hRet = CreateStreamOnHGlobal(hMen, TRUE, &iStr);
+			if (hRet == S_OK)
+			{
+				ULONG len = 0;
+				iStr->Write(data, res.size(), &len);
+				LARGE_INTEGER bg{ 0 };
+				iStr->Seek(bg, STREAM_SEEK_SET, NULL);
+				thiz->imageMonitor.Load(iStr);
+				//thiz->isNullMonitor = true;
+				//TODO 猜测：窗口关闭后写入失败
+				if (obj->m_screenMonitor.isShou == false) {
+					thiz->imageMonitor.Destroy();
+					_endthread();
+				}
 
-		} Sleep(1);
+				CRect rect;
+				obj->m_screenMonitor.m_IconAct.GetWindowRect(rect);
+				//dig->imageMonitor.BitBlt(m_IconAct.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
+
+				thiz->imageMonitor.StretchBlt(obj->m_screenMonitor.m_IconAct.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);
+				obj->m_screenMonitor.m_IconAct.InvalidateRect(NULL);
+				thiz->imageMonitor.Destroy();
+				//thiz->isNullMonitor = false;
+				
+			}
+		}
+		Sleep(1);
 	}
-	//delete[] buf;
 	_endthread();
 }
 

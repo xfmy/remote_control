@@ -76,32 +76,30 @@ void CSreenMonitor::initMouse()
 	m_Sp.client.SetRect(0, 0, x, y);
 }
 
-void CSreenMonitor::OnTimer(UINT_PTR nIDEvent)
-{
-	if (nIDEvent == 0) {
-		//CremoteclientDlg* dig = (CremoteclientDlg*)GetParent();
-		/*CClientController::getObject()->dlg*/
-		CremoteclientDlg* dig = &CClientController::getObject()->dlg;
-		if (dig->isNullMonitor)
-		{
-			CRect rect;
-			m_IconAct.GetWindowRect(rect);
-			//dig->imageMonitor.BitBlt(m_IconAct.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
-			dig->imageMonitor.StretchBlt(m_IconAct.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);
-			m_IconAct.InvalidateRect(NULL);
-			dig->imageMonitor.Destroy();
-			dig->isNullMonitor = false;
-		}
-	}
-	CDialog::OnTimer(nIDEvent);
-}
+//void CSreenMonitor::OnTimer(UINT_PTR nIDEvent)
+//{
+//	if (nIDEvent == 0) {
+//		CremoteclientDlg* dig = &CClientController::getObject()->dlg;
+//		//if (dig->isNullMonitor)
+//		{
+//			CRect rect;
+//			m_IconAct.GetWindowRect(rect);
+//			//dig->imageMonitor.BitBlt(m_IconAct.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
+//			dig->imageMonitor.StretchBlt(m_IconAct.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);
+//			m_IconAct.InvalidateRect(NULL);
+//			dig->imageMonitor.Destroy();
+//			//dig->isNullMonitor = false;
+//		}
+//	}
+//	CDialog::OnTimer(nIDEvent);
+//}
 
 
 BOOL CSreenMonitor::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
-	SetTimer(0, 35, NULL);
+	//SetTimer(0, 35, NULL);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -198,13 +196,13 @@ void CSreenMonitor::OnRButtonDown(UINT nFlags, CPoint point)
 	CDialog::OnRButtonDown(nFlags, point);
 }
 
-
+//加锁按钮
 void CSreenMonitor::OnBnClickedButton1()
 {
-	CClientController::getObject()->SendCommandPacket(9);
+	CClientController::getObject()->SendCommandPacket(8);
 }
 
-
+//解锁按钮
 void CSreenMonitor::OnBnClickedButton2()
 {
 	CClientController::getObject()->SendCommandPacket(9);

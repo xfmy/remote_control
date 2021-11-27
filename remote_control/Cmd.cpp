@@ -96,14 +96,20 @@ int CCommand::downLoadFile(std::list<DataBag>& m_list, DataBag& bag)
 		return -1;
 	}
 	size_t sz{};
+	std::unique_ptr<char> buf{ new char[1024 * 1024] };
 	do {//此处可以改成一次读1kb，读2次 while判断条件修改
 		//可以改成1mb
-		char fileFormat[3072]{};
-		sz = fread(fileFormat, 1, 3072, fd);
-
-		std::string str(fileFormat, sz);
+		//char fileFormat[3072]{};
+		//sz = fread(fileFormat, 1, 3072, fd);
+		//std::string str(fileFormat, sz);
+		memset(buf.get(), 0, 1024 * 1024);
+		std::string str;
+		sz = fread(buf.get(), 1, 1024 * 1024, fd);
+		str.assign(buf.get(), sz);
+		
 		m_list.push_back(DataBag(4,str));
-	} while (sz == 3072);
+	} while (sz == 1024 * 1024);
+	buf.reset();
 	fclose(fd);
 	return 0;
 }

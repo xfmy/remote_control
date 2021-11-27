@@ -82,9 +82,10 @@ int CServerSocket::Run(SOCK_CALL_FUNCTION call_back, void* arg, int port)
 	std::list<DataBag> m_list;
 	m_callBack = call_back;
 	m_arg = arg;
-	while (true)
+	int res = 0;
+	while (res >= 0)
 	{
-		int res = recvMes();
+		res = recvMes();
 		if (res > 0) {
 			//AfxMessageBox("recvMes返回值异常");
 			m_callBack(m_arg, res, m_list, databag);
@@ -131,7 +132,11 @@ bool CServerSocket::start(int count)
 			TRACE("accept失败->%s", GetErrorInfo(WSAGetLastError()).c_str());
 			i--;
 		}
-		TRACE("ip===============%x", addr.sin_addr.S_un.S_addr);
+		UCHAR* pIp = (UCHAR*)&addr.sin_addr.S_un.S_addr;
+		USHORT pt;
+		memcpy(&pt, (char*)&addr.sin_port + 1, 1);
+		memcpy((char*)&pt + 1, (char*)&addr.sin_port, 1);
+		TRACE("服务端接收成功 端口号%d,ip==%d.%d.%d.%d\n", pt, *pIp, *(pIp + 1), *(pIp + 2), *(pIp + 3));
 	}
 	//TODO accept,send.recv-----io复用---多线程
 	return true;

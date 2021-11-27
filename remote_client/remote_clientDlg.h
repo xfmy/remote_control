@@ -37,7 +37,7 @@ public:
 	//视频监控多线程函数
 	//static void __cdecl _threadMonitor(void*);
 	CImage imageMonitor;
-	bool isNullMonitor = false;
+	/*bool isNullMonitor = false;*/
 	//CSreenMonitor cs;
 	afx_msg void OnBnClickedButtonDemo();
 	// ip控件绑定变量

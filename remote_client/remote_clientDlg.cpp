@@ -254,11 +254,14 @@ void CremoteclientDlg::OnBnClickedButtonDemo()
 		//启动网络层发送线程
 		_beginthread(&CClientSocket::_threadSendPacketFun, 0, CClientSocket::getObject());
 		_beginthread(&CClientSocket::_threadRecvPacketFun, 0, CClientSocket::getObject());
-		//TODO 启动屏幕监控 处理
-		_beginthread(CClientController::_threadMonitor, 0, this);
+		
 		//TODO 处理
 		obj->m_screenMonitor.initMouse();
+		obj->m_screenMonitor.isShou = true;
+		//TODO 启动屏幕监控 处理
+		_beginthread(CClientController::_threadMonitor, 0, this);
 		obj->m_screenMonitor.DoModal();
+		obj->m_screenMonitor.isShou = false;
 		//_beginthread(CClientController::_threadDialogDomel, 0, this);
 	}
 }
@@ -527,7 +530,11 @@ void CremoteclientDlg::OnDownloadFile()
 		info += fs;
 		CClientController* ctl = CClientController::getObject();
 
-		ctl->m_dLoad.Create(IDD_DLG_DOWNLOAD, this);
+		static bool isSecond = true;
+		if (isSecond) {
+			ctl->m_dLoad.Create(IDD_DLG_DOWNLOAD, this);
+			isSecond = false;
+		}
 		ctl->m_dLoad.m_ion_str.SetWindowTextA(info);
 		ctl->m_dLoad.m_ion_str.UpdateData(FALSE);
 		UpdateData(FALSE);
@@ -594,13 +601,13 @@ void CremoteclientDlg::OnIpnFieldchangedIpaddressIp(NMHDR* pNMHDR, LRESULT* pRes
 {
 	LPNMIPADDRESS pIPAddr = reinterpret_cast<LPNMIPADDRESS>(pNMHDR);
 	*pResult = 0;
-	UpdateData(FALSE);
+	UpdateData();
 	CClientSocket::getObject()->UpData(m_ipAddr, atoi(m_port.GetBuffer()));
 }
 
 //端口控件修改
 void CremoteclientDlg::OnEnChangeEditPort()
 {
-	UpdateData(FALSE);
+	UpdateData();
 	CClientSocket::getObject()->UpData(m_ipAddr, atoi(m_port.GetBuffer()));
 }
