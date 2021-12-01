@@ -115,7 +115,7 @@ void WINAPIV CClientSocket::_threadSendPacketFun(void* ary)
 	while (thiz->sock != INVALID_SOCKET)
 	{
 		
-		if (!thiz->m_sendBag.empty() && thiz->sock != 0xdddddddd)//0xdddddddd表示该内存已经释放
+		if (!thiz->m_sendBag.empty() && thiz->sock != 0xdddddddd && thiz->sock != INVALID_SOCKET)//0xdddddddd表示该内存已经释放
 		{
 			EnterCriticalSection(&thiz->RtlSend);
 			int res = thiz->SendMes(thiz->m_sendBag.front());
@@ -126,6 +126,7 @@ void WINAPIV CClientSocket::_threadSendPacketFun(void* ary)
 		else Sleep(1);
 		
 	}
+	thiz->sock = INVALID_SOCKET;
 	TRACE("send socket close\n");
 	_endthread();
 }
@@ -257,6 +258,7 @@ int CClientSocket::SendMes(DataBag& bag)
 	if (res <= 0)
 	{
 		TRACE("send失败->%s", GetErrorInfo(WSAGetLastError()).c_str());
+		this->sock = INVALID_SOCKET;
 	}
 	return res; 
 }
@@ -270,6 +272,7 @@ std::string CClientSocket::GetResultInfo(int nCmd)
 		Sleep(1);
 	}
 	EnterCriticalSection(&RtlRecv[nCmd - 1]);
+
 	res = bag.front().m_data;
 	bag.pop_front();
 	LeaveCriticalSection(&RtlRecv[nCmd - 1]);

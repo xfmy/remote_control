@@ -60,6 +60,8 @@ CremoteclientDlg::CremoteclientDlg(CWnd* pParent /*=nullptr*/)
 	//获取CS屏幕分辨率
 }
 
+
+
 void CremoteclientDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);

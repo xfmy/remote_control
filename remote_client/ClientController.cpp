@@ -193,10 +193,11 @@ void WINAPIV CClientController::_ThreadDoenLoadFunction(void* parametor)
 	_endthread();
 }
 
-//TODO去掉定时器
+
 void __cdecl CClientController::_threadMonitor(void* th)
 {
 	Sleep(50);
+	
 	CremoteclientDlg* thiz = (CremoteclientDlg*)th;
 	CClientController* obj = CClientController::getObject();
 	while (!CClientSocket::getObject())
@@ -205,8 +206,6 @@ void __cdecl CClientController::_threadMonitor(void* th)
 	}
 	DWORD time = GetCurrentTime();
 	while (obj->m_screenMonitor.isShou) {
-		//if (thiz->isNullMonitor == false)
-		//{
 		DataBag bag(7);
 
 		if (GetCurrentTime() - time < 50)
@@ -231,30 +230,29 @@ void __cdecl CClientController::_threadMonitor(void* th)
 			HRESULT hRet = CreateStreamOnHGlobal(hMen, TRUE, &iStr);
 			if (hRet == S_OK)
 			{
+				
 				ULONG len = 0;
 				iStr->Write(data, res.size(), &len);
+
 				LARGE_INTEGER bg{ 0 };
 				iStr->Seek(bg, STREAM_SEEK_SET, NULL);
+
 				thiz->imageMonitor.Load(iStr);
-				//thiz->isNullMonitor = true;
-				//TODO 猜测：窗口关闭后写入失败
-				if (obj->m_screenMonitor.isShou == false) {
-					thiz->imageMonitor.Destroy();
-					_endthread();
+				iStr->Release();
+				if (obj->m_screenMonitor.isShou){
+					CRect rect;
+					obj->m_screenMonitor.m_IconAct.GetWindowRect(rect);
+					//dig->imageMonitor.BitBlt(m_IconAct.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
+					CDC* dc = obj->m_screenMonitor.m_IconAct.GetDC();
+					thiz->imageMonitor.StretchBlt(dc->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);
+					obj->m_screenMonitor.m_IconAct.ReleaseDC(dc);
+					obj->m_screenMonitor.m_IconAct.InvalidateRect(NULL);
 				}
-
-				CRect rect;
-				obj->m_screenMonitor.m_IconAct.GetWindowRect(rect);
-				//dig->imageMonitor.BitBlt(m_IconAct.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
-
-				thiz->imageMonitor.StretchBlt(obj->m_screenMonitor.m_IconAct.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);
-				obj->m_screenMonitor.m_IconAct.InvalidateRect(NULL);
-				thiz->imageMonitor.Destroy();
-				//thiz->isNullMonitor = false;
-				
 			}
+			thiz->imageMonitor.Destroy();
+			GlobalFree(hMen);
 		}
-		Sleep(1);
+		Sleep(30);
 	}
 	_endthread();
 }
