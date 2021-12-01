@@ -77,7 +77,6 @@ CServerSocket* CServerSocket::getObject()
 int CServerSocket::Run(SOCK_CALL_FUNCTION call_back, void* arg, int port)
 {
 	if (init(port)) return -1;
-
 	if(start() == false) return -2;
 	std::list<DataBag> m_list;
 	m_callBack = call_back;
