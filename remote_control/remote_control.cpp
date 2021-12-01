@@ -19,18 +19,78 @@ CWinApp theApp;
 
 using namespace std;
 
+bool GetProgramPrivilege() {
+    HANDLE hToken = NULL;
+    if (!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&hToken))
+    {
+        TRACE("打开进程token失败");
+        return false;
+    }
+    TOKEN_ELEVATION eve;
+    DWORD len = 0;
+    if (GetTokenInformation(hToken,TokenElevation,&eve,sizeof eve,&len) == false)
+    {
+        TRACE("获取tolen信息失败");
+        return false;
+    }
+    CloseHandle(hToken);
+    if (len == sizeof eve)
+    {
+        return eve.TokenIsElevated;
+    }
+    TRACE("长度不对");
+    return false;
+}
+void RunAsAdmin()
+{
+    HANDLE hToken = nullptr;
+    int ret = LogonUser("Administrator", NULL, NULL, LOGON32_LOGON_BATCH, 
+        LOGON32_PROVIDER_DEFAULT, &hToken);
+    if (!ret)
+    {
+        TRACE("登录失败");
+        CloseHandle(hToken);
+        return;
+    }
+    STARTUPINFOW si = { 0 };
+    PROCESS_INFORMATION pi = { 0 };
+    WCHAR sPath[MAX_PATH] = L"";
+    GetCurrentDirectoryW(MAX_PATH, sPath);
+    CStringW strCmd = sPath;
+    strCmd += "\\remote_control.exe";
+    
+    
+    ret = CreateProcessWithLogonW(L"Administrator", NULL, NULL,
+        LOGON_WITH_PROFILE, NULL, strCmd.GetBuffer(), CREATE_UNICODE_ENVIRONMENT,
+        NULL, NULL, &si, &pi);
+    ret = GetLastError();
+    CloseHandle(hToken);
+    if (!ret)
+    {
+		TRACE("创建失败");
+        return;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+}
 int main()
 {
+    //TODO 转到run函数执行
+    if (!GetProgramPrivilege())
+    {
+        RunAsAdmin();
+    }
+
+
     int nRetCode = 0;
 
     HMODULE hModule = ::GetModuleHandle(nullptr);
 
     if (hModule != nullptr)
     {
-        // 初始化 MFC 并在失败时显示错误
         if (!AfxWinInit(hModule, nullptr, ::GetCommandLine(), 0))
         {
-            // TODO: 在此处为应用程序的行为编写代码。
             wprintf(L"错误: MFC 初始化失败\n");
             nRetCode = 1;
         }
@@ -50,24 +110,10 @@ int main()
             default:
                 break;
             }
-
-			//sock->start();
-			//int res{};
-			/*while ((res = sock->recvMes()) != 666)
-			{
-				if (res > 0)
-				{
-					com.executeCmd(res);
-				}
-			}*/
-			
-
-            //TODO 此处应该承接返回值（send返回值）
 		}
     }
     else
     {
-        // TODO: 更改错误代码以符合需要
         wprintf(L"错误: GetModuleHandle 失败\n");
         nRetCode = 1;
     }
